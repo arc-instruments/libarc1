@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "libarc1"
+version = "0.0.1"
+description = "Minimal interface to ArC1"
+license = "LGPL-3.0-or-later"
+authors = ["Spyros Stathopoulos <ss2y15@soton.ac.uk>"]
+readme = "README.md"
+repository = "https://github.com/arc-instruments/libarc1"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+numpy = "^1.14"
+pyserial = "^3.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
