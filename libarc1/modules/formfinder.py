@@ -1,6 +1,21 @@
+from enum import IntEnum
 from . import Module
 from ..packets import *
 from .. import generic_triplet_runner
+
+
+class FF_SR(IntEnum):
+    R1K = 1
+    R10K = 2
+    R100K = 3
+    R1M = 4
+    R0 = 7
+
+
+class FF_PWMode(IntEnum):
+    LOG10 = 0
+    LINEAR = 1
+
 
 class FF_PKT(Packet):
 
@@ -45,7 +60,7 @@ class FormFinder(Module):
         """Generic voltage ramp/pulse train generator."""
 
     default_config = {
-            "mode": 0,
+            "mode": FF_PWMode.LOG10,
             "PWnum": 1,
             "Vmin": 0.25,
             "Vstep": 0.25,
@@ -56,7 +71,7 @@ class FormFinder(Module):
             "PWinter": 10e-3,
             "Rthr": 1e6,
             "RthrP": 0.0,
-            "pSR": 7 }
+            "pSR": FF_SR.R0 }
 
     def run(self, devs, conf=default_config, sink=None):
         instr = self.instrument
