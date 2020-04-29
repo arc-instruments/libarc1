@@ -20,44 +20,85 @@ from .log import LOG
 
 
 class READ_MODE(IntEnum):
+    """ Read mode for ArC1 read-out operations. """
+
     CLASSIC = 0
+    """ Linear resistor mode """
     TIA = 1
+    """ Use 2-point transimpedance amplifier """
     TIA4P = 2
+    """ Use 4-point transimpedance amplifier (V>0) """
     TIA4P_NEG = 3
+    """ Use 4-point transimpedance amplifier (V<0) """
 
 
 class SESSION(IntEnum):
+    """ Session type configuration. """
+
     LOCAL = 0
+    """ Direct access to crossbar; either package or headers """
     EXTERNAL_BNC = 1
+    """ Use external BNC connectors to interface devices """
     BNC_TO_LOCAL = 2
+    """ Measurement capabilities disabled; ArC1 works as a switch matrix """
     OFFLINE = 3
+    """ All capabilities disabled """
 
 
 class SNEAKPATH_LIMIT(IntEnum):
+    """ Sneak path limitation policies """
+
     ONE_THIRD = 0
+    """ Apply 1/3 of the active read voltage to the inactive lines """
     ONE_HALF = 1
+    """ Apply 1/2 of the active read voltage to the inactive lines """
     FLOAT = 2
+    """ Leave inactive lines floating """
 
 
 @dataclass
 class ArC1Conf:
+    """
+    This is a data class defining the configuration of ArC1. It can be passed
+    as an argument when connecting to the board.
+
+    >>> from libarc1 import ArC1, ArC1Conf
+    >>> conf = ArC1Conf()
+    >>> # set read cycles to 50
+    >>> conf.read_cycles = 50
+    >>> arc1 = ArC1('/dev/ttyACM0', config=conf)
+    """
+
     read_cycles: int = 30
+    """ Number of read cycles per read-out operation """
     words: int = 32
+    """ Number of wordlines in connected crossbar; min: 1, max: 32 """
     bits: int = 32
+    """ Number of bitlines in connected crossbar; min: 1, max: 32 """
     read_mode: int = READ_MODE.TIA4P
+    """ Method use for readouts; see `libarc1.arc.READ_MODE` """
     session_type: int = SESSION.LOCAL
+    """ Type of session; see `libarc1.arc.SESSION` """
     sneak_path: int = SNEAKPATH_LIMIT.ONE_THIRD
+    """ Method of sneak path limitation; see `libarc1.arc.SNEAKPATH_LIMIT` """
     Vread: float = 0.5
+    """ Read-out voltage """
     write_delay: float = 0.001
+    """
+    Minimum delay between consecutive write operations. **CAUTION**: Using
+    values < 0.5 ms will probably lead to dropped packets.
+    """
 
 
 class ConnectionError(Exception):
+    """ Error used to indicate connectivity issues """
 
     def __init__(self, message=""):
         self.message = message
 
 
 class OperationInProgress(Exception):
+    """ Error used to indicate that an existin operation is in progress """
 
     def __init__(self, op_name=""):
         if op_name == "":
@@ -67,6 +108,25 @@ class OperationInProgress(Exception):
 
 
 class ArC1():
+    """
+    Main class for interacting with ArC1. It encapsulates the connection to the
+    tool, provides basic operations (select, read, write, retention, etc.).
+    Units are **always** in SI (Volts for voltage, seconds for durations, etc.)
+
+    Arguments
+    ---------
+    Except for the ``port`` and maybe ``config`` you shouldn't need to define
+    any more arguments. The defaults are always compatible with the latest
+    firmware of the board.
+
+    * ``port``: A serial port to connect to. This follows the naming convention
+      used by the operating system; for instance ``COM1`` on Windows,
+      ``/dev/ttyACM0`` on Linux, etc.
+    * ``baud``: Baud rate of the serial port connection
+    * ``parity``: Parity of the serial port connection. Defaults to even parity
+    * ``stop``: Number of stop bits.
+    * ``config``: ArC1 configuration; see `libarc1.arc.ArC1Conf`
+    """
 
     def __init__(self, port, baud=921600, parity=serial.PARITY_EVEN,
             stop=serial.STOPBITS_ONE, config=ArC1Conf(), _buffer_impl='queue'):
@@ -122,7 +182,7 @@ class ArC1():
 
     def _load_builtin_modules(self):
         """
-        Load all non-package modules found under `modules`.
+        Load all non-package modules found under `libarc1.modules`.
         """
         for loader, modname, is_pkg in pkgutil.walk_packages(modules.__path__):
             if is_pkg:
@@ -136,12 +196,17 @@ class ArC1():
 
     @property
     def config(self):
+        """
+        Returns the active configuration. This cannot be changed without
+        reinitialising the instrument. See `libarc1.arc.ArC1.initialise`.
+        """
         return self._config
 
     def register_module(self, mod):
         """
-        Register module `mod`. Note that if a module with the same tag exists
-        it will be overwritten.
+        Register module ``mod``. Note that if a module with the same tag exists
+        it will be overwritten. Module *must* be a subclass of
+        `libarc1.modules.Module`.
         """
         if not issubclass(mod, modules.Module):
             raise ValueError("Invalid module type; must subclass `libarc.modules.Module`")
@@ -154,7 +219,7 @@ class ArC1():
                 issubclass(mod, modules.Module) and \
                 mod is not modules.Module
 
-    def open_modules_from_file(self, path):
+    def _open_modules_from_file(self, path):
         """
         Load and return modules found on the python file specified. Note that
         if filename contains any more dots ('.') other than the one separating
@@ -170,10 +235,11 @@ class ArC1():
 
         return [m[1] for m in mods]
 
-    def open_modules_from_folder(self, path):
+    def _open_modules_from_folder(self, path):
         """
-        Same as `open_modules_from_file` but instead of a single file load all
-        modules found in python source files under specified `path`.
+        Same as `libarc1.arc.ArC1.open_modules_from_file` but instead of a
+        single file load all modules found in python source files under
+        specified ``path``.
         """
         if not os.path.isdir(path):
             raise ValueError("%s is not a folder" % path)
@@ -182,23 +248,24 @@ class ArC1():
 
         files = glob.glob(os.path.join(path, '*.py'))
         for f in files:
-            mods.extend(self.open_modules_from_file(f))
+            mods.extend(self._open_modules_from_file(f))
 
         return mods
 
     def register_modules_from_file(self, path):
         """
         Load modules from file into the internal module list. File must be
-        ending in .py.
+        ending in ``.py``.
         """
-        for mod in self.open_modules_from_file(path):
+        for mod in self._open_modules_from_file(path):
             self.modules[mod.tag] = mod
 
     def register_modules_from_folder(self, path):
         """
-        Load and register all modules from python files found under folder `path`.
+        Load and register all modules from python files found under folder
+        ``path``.
         """
-        for mod in self.open_modules_from_folder(path):
+        for mod in self._open_modules_from_folder(path):
             self.modules[mod.tag] = mod
 
     def read_floats(self, how_many):
@@ -221,6 +288,12 @@ class ArC1():
         return memoryview(values)
 
     def update_Vread(self, val):
+        """
+        Updates the current read-out voltage. Absolute maximum value is ±12 V.
+        Depending on the current read-out mode (see `libarc1.arc.READ_MODE`)
+        a switch from `libarc1.arc.READ_MODE.TIA4P` to `libarc1.arc.READ_MODE.TIA4P_NEG`
+        might be required. This is done automatically.
+        """
         if np.abs(val) > 12.0:
             raise ValueError("Vread out of bounds -12 < V < 12")
 
@@ -249,7 +322,11 @@ class ArC1():
 
     def write(self, bytestream):
         """
-        Write an arbitrary bytestream to the serial port
+        Write an arbitrary bytestream to the serial port. None of the
+        user-facing functionality requires direct access to the serial
+        port. If you really need to write manually to the serial port
+        consider using predefined packets with `libarc1.arc.ArC1.write_packet`
+        instead.
         """
         with self.lock:
             self._port.write(bytestream)
@@ -257,8 +334,9 @@ class ArC1():
 
     def write_packet(self, pkt):
         """
-        Write a command packet to the serial port. The packet is
-        converted to the proper bytestream
+        Write a command packet to the serial port. The packet is converted to
+        the proper bytestream. All modules and internal operation expose the
+        packets required to be sent to the instrument.
         """
         with self.lock:
             for parts in pkt:
@@ -266,14 +344,14 @@ class ArC1():
 
     def read_line(self):
         """
-        Read a line from the serial port. Result is a bytearray
+        Read a line from the serial port. Result is a bytearray. As with
+        `libarc1.arc.write` direct read-out from the tool should not be
+        required.
         """
         return self._port.readline()
 
     def reset(self):
-        """
-        Force a uC reset
-        """
+        """ Force a uC reset """
         self.write(b"00\n")
         time.sleep(2)
 
@@ -315,7 +393,7 @@ class ArC1():
     def finish_op(self):
         """
         Terminate the currently long-running operation. The operation thread is
-        waited on and then is forced to be DECREF'd by essentially dropping it.
+        waited on and then is dropped.
         """
         if self._operation is not threading.current_thread():
             self._operation.join()
@@ -328,31 +406,33 @@ class ArC1():
         if self._operation is not None:
             self._operation.join()
 
-    def select(self, w, b):
+    def select(self, word, bit):
         """
-        Close a particular crosspoint
+        Close a particular crosspoint. Crosspoint ``word`` × ``bit`` will
+        remain closed unless another operation that selects devices is
+        executed.
         """
-        self.write_packet(SELECT(w,b))
+        self.write_packet(SELECT(word,bit))
 
-    def read_one(self, w, b):
+    def read_one(self, word, bit):
         """
         Read a single device. Blocks until a float is returned
         """
-        self.write_packet(READ_ONE(w, b))
+        self.write_packet(READ_ONE(word, bit))
 
         return self.read_floats(1)[0]
 
     def pulse_active(self, voltage, pulse_width):
         """
-        Pulses device previously selected with `select`
+        Pulses device previously selected with `libarc1.arc.ArC1.select`
         """
         self.write_packet(PULSE_ACTIVE(voltage, pulse_width))
 
-    def pulseread_one(self, w, b, voltage, pulse_width):
+    def pulseread_one(self, word, bit, voltage, pulse_width):
         """
         Pulse then read a single device. Blocks until a float is returned
         """
-        self.write_packet(PULSEREAD_ONE(w, b, voltage, pulse_width))
+        self.write_packet(PULSEREAD_ONE(word, bit, voltage, pulse_width))
 
         return self.read_floats(1)[0]
 
@@ -413,15 +493,19 @@ class ArC1():
         Read all the devices up to `words` wordlines and `bits` bitlines. It
         returns an iterator over the internal FIFO buffer so consumption can
         be done in the fairly pythonic way:
+
         >>> for datum in arc1.read_all():
         >>>     do_smth_with(datum)
+
+        This wraps `libarc1.modules.readops.ReadAll` for convenience.
         """
         return self.run_module(ReadAll, [], {'words': words, 'bits': bits})
 
     def read_masked(self, devs):
         """
         Read a specific subset of devices. `devs` is a list of tuples
-        or other iterables containing (wordline, bitline).
+        or other iterables containing (wordline, bitline). This wraps
+        `libarc1.modules.readops.ReadMasked` for convenience.
         """
 
         return self.run_module(ReadMasked, devs, {})
@@ -429,7 +513,8 @@ class ArC1():
     def retention(self, devs, step=1.0, duration=60.0):
         """
         Read a series of devices every `step` seconds for a total of up to
-        `duration` seconds.
+        `duration` seconds. This wraps `libarc1.modules.readops.Retention`
+        for convenience.
         """
 
         return self.run_module(Retention, devs, \
