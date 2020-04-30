@@ -436,34 +436,39 @@ class ArC1():
 
         return self.read_floats(1)[0]
 
-    def _wrap_sequence(self, sequence, sink=None):
+    def _wrap_sequence(self, sequence):
+
+        if sequence.sink is None:
+            sink = self.add_to_buffer
+        else:
+            sink = sequence.sink
 
         if self._operation is not None:
             raise OperationInProgress(self._operation.name)
 
         def wrapper():
-            self.add_to_buffer(json.dumps({'seq': sequence.name,
+            sink(json.dumps({'seq': sequence.name,
                 'status': 0, 'devs': sequence.devs}))
             for dev in sequence.iterdevs():
                 for (targetmod, conf) in sequence.itermods():
-                    mod = self._module_from_arg(targetmod)
-                    self.add_to_buffer(json.dumps({'mod': mod.name,
+                    mod = self._module_from_arg(targetmod, sink)
+                    sink(json.dumps({'mod': mod.name,
                         'tag': mod.tag, 'status': 0, 'devs': [dev],
                         'conf': conf}))
-                    mod([dev], conf, sink)
-                    self.add_to_buffer(json.dumps({'mod': mod.name,
+                    mod([dev], conf)
+                    sink(json.dumps({'mod': mod.name,
                         'tag': mod.tag, 'status': 1}))
             self.finish_op()
-            self.add_to_buffer(json.dumps({'seq': sequence.name,
+            sink(json.dumps({'seq': sequence.name,
                 'status': 1}))
-            self.add_to_buffer(None)
+            sink(None)
 
         self._operation = threading.Thread(target=wrapper, name=sequence.name)
         self._operation.start()
 
         return iter(self._get_from_buffer, None)
 
-    def _wrap_op(self, mod, devs, conf, sink):
+    def _wrap_op(self, mod, devs, conf):
         """
         Helper function that wraps the execution of a long-running operation
         (module) in a thread and returns an iterator to the FIFO buffer.
@@ -475,13 +480,13 @@ class ArC1():
         # this wraps the mod itself and adds the sentinel value at
         # the end of the queue
         def wrapper():
-            self.add_to_buffer(json.dumps({'mod': mod.name, 'tag': mod.tag,
+            mod.sink(json.dumps({'mod': mod.name, 'tag': mod.tag,
                 'status': 0, 'devs': devs, 'conf': conf}))
-            mod(devs, conf, sink)
+            mod(devs, conf)
             self.finish_op()
-            self.add_to_buffer(json.dumps({'mod': mod.name, 'tag': mod.tag,
+            mod.sink(json.dumps({'mod': mod.name, 'tag': mod.tag,
                 'status': 1}))
-            self.add_to_buffer(None)
+            mod.sink(None)
 
         self._operation = threading.Thread(target=wrapper, name=mod.name)
         self._operation.start()
@@ -520,10 +525,10 @@ class ArC1():
         return self.run_module(Retention, devs, \
                 {"step": step, "duration": duration})
 
-    def _module_from_arg(self, arg):
+    def _module_from_arg(self, arg, sink):
 
         if inspect.isclass(arg) and issubclass(arg, modules.Module):
-            mod = arg(self)
+            mod = arg(self, sink)
         elif isinstance(target, str):
             mod = self.modules[arg](self)
         else:
@@ -538,13 +543,13 @@ class ArC1():
         first case the module is loaded from the list of registered
         modules, otherwise is instanced directly.
         """
-        mod = self._module_from_arg(target)
+        mod = self._module_from_arg(target, sink)
 
         if conf is None:
             conf = mod.default_config
 
-        return self._wrap_op(mod, devs, conf, sink)
+        return self._wrap_op(mod, devs, conf)
 
     def run_sequence(self, sequence, sink=None):
-        return self._wrap_sequence(sequence, sink)
+        return self._wrap_sequence(sequence)
 

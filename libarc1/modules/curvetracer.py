@@ -82,14 +82,12 @@ class CurveTracer(Module):
             "IVspan": CTSpan.TOWARDS_VP,
             "halt": False }
 
-    def run(self, devs, conf=default_config, sink=None):
+    def run(self, devs, conf=default_config):
         instr = self.instrument
         pkt = CT_PKT(conf, len(devs))
+        sink = self.sink
 
         instr.write_packet(pkt)
-
-        if sink is None:
-            sink = instr.add_to_buffer
 
         for (word, bit) in devs:
             dev_pkt = DEVICE(word, bit)

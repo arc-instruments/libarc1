@@ -4,7 +4,7 @@ from .packets import DEVICE
 from .log import LOG
 
 
-def generic_triplet_runner(instr, pkt, devs, sink=None):
+def generic_triplet_runner(instr, pkt, devs, sink):
     """
     This is a generic "triplet generator". A lot of the builtin
     ArC modules return a triplet of values (resistance, voltage, pulse width)
@@ -12,9 +12,6 @@ def generic_triplet_runner(instr, pkt, devs, sink=None):
     behaviour is quite common a utility function is provided.
     """
     instr.write_packet(pkt)
-
-    if sink is None:
-        sink = instr.add_to_buffer
 
     for (word, bit) in devs:
         dev_pkt = DEVICE(word, bit)

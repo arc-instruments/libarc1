@@ -55,8 +55,8 @@ class ConvergeToState(Module):
             "pulses": 1,
             "polarity": 1}
 
-    def run(self, devs, conf=default_config, sink=None):
+    def run(self, devs, conf=default_config):
         instr = self.instrument
         pkt = CTS_PKT(conf, len(devs))
 
-        generic_triplet_runner(instr, pkt, devs, sink)
+        generic_triplet_runner(instr, pkt, devs, self.sink)

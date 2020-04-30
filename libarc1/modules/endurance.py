@@ -50,8 +50,8 @@ class Endurance(Module):
             "PWnumneg": 1,
             "cycles": 10}
 
-    def run(self, devs, conf=default_config, sink=None):
+    def run(self, devs, conf=default_config):
         instr = self.instrument
         pkt = EN_PKT(conf, len(devs))
 
-        generic_triplet_runner(instr, pkt, devs, sink)
+        generic_triplet_runner(instr, pkt, devs, self.sink)

@@ -34,12 +34,10 @@ class ReadAll(Module):
             "words": 32,
             "bits": 32 }
 
-    def run(self, devs=None, conf=default_config, sink=None):
+    def run(self, devs=None, conf=default_config):
 
         instr = self.instrument
-
-        if sink is None:
-            sink = instr.add_to_buffer
+        sink = self.sink
 
         words = conf["words"]
         bits = conf["bits"]
@@ -61,11 +59,10 @@ class Retention(Module):
             "step": 1.0,
             "duration": 60.0 }
 
-    def run(self, devs, conf=default_config, sink=None):
-        instr = self.instrument
+    def run(self, devs, conf=default_config):
 
-        if sink is None:
-            sink = instr.add_to_buffer
+        instr = self.instrument
+        sink = self.sink
 
         duration = conf["duration"]
         step = conf["step"]
@@ -90,12 +87,10 @@ class ReadMasked(Module):
     tag = "RM"
     description = "Sequentially read a series of crosspoints"
 
-    def run(self, devs, conf={}, sink=None):
+    def run(self, devs, conf={}):
 
         instr = self.instrument
-
-        if sink is None:
-            sink = instr.add_to_buffer
+        sink = self.sink
 
         instr.write_packet(_READMASK_PKT(len(devs)))
 

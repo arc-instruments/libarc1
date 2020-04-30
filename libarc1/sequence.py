@@ -1,9 +1,10 @@
 class Sequence():
 
-    def __init__(self, name, mods=[], devs=[]):
+    def __init__(self, name, mods=[], devs=[], sink=None):
         self._name = name
         self._mods = mods
         self._devs = devs
+        self.sink = sink
 
     @property
     def name(self):
