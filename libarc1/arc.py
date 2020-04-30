@@ -56,6 +56,21 @@ class SNEAKPATH_LIMIT(IntEnum):
     """ Leave inactive lines floating """
 
 
+class SERIES_RES(IntEnum):
+    """ Serier resistance for overcurrent protection """
+
+    R1K = 1
+    """ 1k Series Resistance """
+    R10K = 2
+    """ 10k Series Resistance """
+    R100K = 3
+    """ 100k Series Resistance """
+    R1M = 4
+    """ 1M Series Resistance """
+    R0 = 7
+    """ No series resistance """
+
+
 @dataclass
 class ArC1Conf:
     """

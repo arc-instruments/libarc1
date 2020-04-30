@@ -2,14 +2,7 @@ from enum import IntEnum
 from . import Module
 from ..packets import *
 from .. import generic_triplet_runner
-
-
-class FF_SR(IntEnum):
-    R1K = 1
-    R10K = 2
-    R100K = 3
-    R1M = 4
-    R0 = 7
+from ..arc import SERIES_RES
 
 
 class FF_PWMode(IntEnum):
@@ -71,7 +64,7 @@ class FormFinder(Module):
             "PWinter": 10e-3,
             "Rthr": 1e6,
             "RthrP": 0.0,
-            "pSR": FF_SR.R0 }
+            "pSR": SERIES_RES.R0 }
 
     def run(self, devs, conf=default_config):
         instr = self.instrument
@@ -93,7 +86,7 @@ class RampGenerator(Module):
             "Vmax": 1.0,
             "PW": 100e-6,
             "interpulse": 10e-3,
-            "pSR": FF_SR.R0 }
+            "pSR": SERIES_RES.R0 }
 
     def run(self, devs, conf=default_config):
         ff_conf = FormFinder.default_config
