@@ -77,7 +77,7 @@ class RampGenerator(Module):
 
     name = "RampGenerator"
     tag = "RMP"
-    description = """ One-shot ramp generator """
+    description = """One-shot ramp generator"""
 
     default_config = {
             "PWnum": 1,
