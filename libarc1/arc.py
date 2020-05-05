@@ -7,6 +7,7 @@ import threading
 import numpy as np
 import glob
 import json
+import struct
 from queue import Queue
 from enum import IntEnum
 from dataclasses import dataclass
@@ -404,6 +405,21 @@ class ArC1():
                 raise ConnectionError("Invalid confirmation")
         except serial.SerialException as se:
             raise ConnectionError(se)
+
+        try:
+            self._port.timeout = 2
+            self.write(b"999\n")
+            data = self.read_bytes(4);
+            (major, minor) = struct.unpack("2H", data)
+            self._fw_version = (major, minor)
+            self._port.timeout = None
+        except Exception as exc:
+            self._fw_version = None
+            self._port.timeout = None
+
+    @property
+    def firmware_version(self):
+        return self._fw_version
 
     def finish_op(self):
         """
