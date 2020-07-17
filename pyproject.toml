@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libarc1"
-version = "0.0.1"
+version = "0.1.0"
 description = "Minimal interface to ArC1"
 license = "LGPL-3.0-or-later"
 authors = ["Spyros Stathopoulos <ss2y15@soton.ac.uk>"]
