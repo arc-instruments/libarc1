@@ -300,7 +300,7 @@ class ArC1():
         Reads a number of bytes from the serial port. This is a blocking
         operation.
         """
-        values = self._port.read(how_many)
+        values = self._port.read(size=how_many)
         return memoryview(values)
 
     def update_Vread(self, val):
@@ -407,6 +407,7 @@ class ArC1():
             raise ConnectionError(se)
 
         try:
+            time.sleep(0.2)
             self._port.timeout = 2
             self.write(b"999\n")
             data = self.read_bytes(4);
