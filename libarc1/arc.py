@@ -406,6 +406,8 @@ class ArC1():
         except serial.SerialException as se:
             raise ConnectionError(se)
 
+        # store the current timeout
+        current_timeout = self._port.timeout
         try:
             time.sleep(0.2)
             self._port.timeout = 2
@@ -413,10 +415,10 @@ class ArC1():
             data = self.read_bytes(4);
             (major, minor) = struct.unpack("2H", data)
             self._fw_version = (major, minor)
-            self._port.timeout = None
+            self._port.timeout = current_timeout
         except Exception as exc:
             self._fw_version = None
-            self._port.timeout = None
+            self._port.timeout = current_timeout
 
     @property
     def firmware_version(self):
