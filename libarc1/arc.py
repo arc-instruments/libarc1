@@ -17,6 +17,7 @@ from .packets import INIT, INIT_ACK, SELECT, READ_ONE
 from .packets import PULSEREAD_ONE, READ_ALL, SET_VREAD
 from . import modules
 from .modules.readops import ReadAll, ReadMasked, Retention
+from .modules.multibias import MultiBias, MB_RW
 from .log import LOG
 
 
@@ -548,6 +549,62 @@ class ArC1():
         """
 
         return self.run_module(ReadMasked, devs, {})
+
+    def write_bitline(self, bit, words, vwrite=1.0, pw_write=100e-6, vread=0.01):
+        """
+        Write a bitline. Active wordlines will be pulsed at `vwrite`, inactives
+        at `vwrite/2`. Read-out voltage can be optionally specified, otherwise
+        it will default to the global read-out voltage.
+
+        This wraps `libarc1.modules.multibias.MultiBias` for convenience
+
+        The MultiBias module returns data upon each step of the iteration so
+        these are reported back to the user. If one wants to only write the
+        bitline without feedback the standard way to run this function is
+
+        >>> from collections import deque
+        >>> deque(arc1.write_bitline(...), maxlen=0)
+
+        This will apply the write_bitline operation while discarding the data
+        """
+
+        conf = MultiBias.default_config
+        conf["Vread"] = vread
+        conf["Vwrite"] = vwrite
+        conf["PWwrite"] = pw_write
+        conf["bitline"] = bit
+        conf["wordlines"] = words
+        conf["action"] = MB_RW.WRITE
+
+        return self.run_module(MultiBias, [], conf=conf)
+
+    def read_bitline(self, bit, vread=None):
+        """
+        Read a bitline. Read-out voltage can be optionally specified, otherwise
+        it will default to the global read-out voltage. The current of the
+        whole bitline is returned
+
+        This wraps `libarc1.modules.multibias.MultiBias` for convenience
+
+        Returns: A (bitline, current) tuple
+        """
+
+        if vread is None:
+            vread = self.config.Vread
+
+        conf = MultiBias.default_config
+        conf["Vread"] = vread
+        conf["bitline"] = bit
+        conf["action"] = MB_RW.READ
+
+        data = []
+
+        for x in self.run_module(MultiBias, [], conf=conf):
+            data.append(x)
+
+        # 0 and 2 are the module markers; data is between those
+        # two, so return data[1]
+        return data[1]
 
     def retention(self, devs, step=1.0, duration=60.0):
         """

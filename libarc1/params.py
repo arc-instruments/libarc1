@@ -16,6 +16,15 @@ class SimpleParam(Param):
     def __iter__(self):
         return bytes(self).__iter__()
 
+class ListParam(Param):
+
+    def __bytes__(self):
+        fmt = b'%s\n' % self.identifier.encode()
+        return b''.join([fmt % item for item in self.value])
+
+    def __iter__(self):
+        return bytes(self).__iter__()
+
 class BytePackedParam(Param):
 
     def __bytes__(self):
@@ -41,8 +50,15 @@ class BytePackedParamClass(ParamClass):
     def new(name, identifier):
         return BytePackedParamClass(name, (BytePackedParam,), {'identifier': identifier})
 
+class ListParamClass(ParamClass):
+
+    @staticmethod
+    def new(name, identifier):
+        return ListParamClass(name, (ListParam,), {'identifier': identifier})
+
 
 Integer = SimpleParamClass.new('Integer', '%d')
+IntegerList = ListParamClass.new('IntegerList', '%d')
 Float = SimpleParamClass.new('Float', '%f')
 Char = SimpleParamClass.new('Char', '%c')
 Byte = Char

@@ -1,4 +1,4 @@
-from .params import Integer, String, Float
+from .params import Integer, String, Float, IntegerList
 
 class Packet():
 
