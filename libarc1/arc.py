@@ -15,6 +15,7 @@ from collections import namedtuple, deque
 
 from .packets import INIT, INIT_ACK, SELECT, READ_ONE
 from .packets import PULSEREAD_ONE, READ_ALL, SET_VREAD
+from .packets import PULSE_ACTIVE
 from . import modules
 from .modules.readops import ReadAll, ReadMasked, Retention
 from .modules.multibias import MultiBias, MB_RW
