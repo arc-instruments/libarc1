@@ -54,7 +54,7 @@ class SNEAKPATH_LIMIT(IntEnum):
     """ Apply 1/3 of the active read voltage to the inactive lines """
     ONE_HALF = 1
     """ Apply 1/2 of the active read voltage to the inactive lines """
-    FLOAT = 2
+    FLOAT = 256
     """ Leave inactive lines floating """
 
 
