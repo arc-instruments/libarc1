@@ -104,3 +104,17 @@ system requires `poetry` which can by installed using `pip`. Then `poetry
 install` will fetch the dependencies and install them in an appropriate virtual
 environment. See [the documentation](https://python-poetry.org/docs/) for more
 info.
+
+## I have a question
+
+Feel free to make a new topic under
+[Discussions](https://github.com/arc-instruments/libarc1/discussions). This
+should be your first stop for support unless you are somewhat certain you run
+into a bug. In that case…
+
+## I found a bug!
+
+If libarc1 does not behave as you would expect please [open an
+issue](https://github.com/arc-instruments/libarc1/issues/new) describing the
+problem and how to reproduce it. Don't forget to mention the operating system
+you are running on!
